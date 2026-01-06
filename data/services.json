@@ -1,0 +1,15 @@
+{
+    "services": [
+        {"id": "service-1", "name": "Taper", "duration": 25},
+        {"id": "service-2", "name": "Fade", "duration": 25},
+        {"id": "service-3", "name": "Taper + Trim", "duration": 35},
+        {"id": "service-4", "name": "Fade + Trim", "duration": 35},
+        {"id": "service-5", "name": "Haarschnitt + Bart", "duration": 45},
+        {"id": "service-6", "name": "Scissor Cut", "duration": 30}
+      ],
+"extras": [
+    
+    {"id": "extras-1", "name": "Bart", "duration": 15},
+    {"id": "extras-2", "name": "Design", "duration": 5}
+  ]
+}

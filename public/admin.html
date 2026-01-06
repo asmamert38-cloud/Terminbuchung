@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin – Buchungen & Verfügbarkeit</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <script>
+    if (sessionStorage.getItem("adminAccess") !== "true") {
+      window.location.href = "login.html";
+    }
+  </script>
+
+  <div class="app">
+    <button id="admin-logout-btn" style="margin-bottom: 16px; float:right;">
+      Logout
+    </button>
+
+    <h1>Admin – Buchungen</h1>
+
+    <div id="admin-bookings">
+      Lade Buchungen...
+    </div>
+
+    <button id="back-btn" style="margin-top:20px;">
+      Zurück zur Terminbuchung
+    </button>
+
+    <hr style="margin:24px 0;">
+
+    <section class="availability-section">
+      <h2>Verfügbare Zeiträume</h2>
+      
+
+      <div class="week-nav">
+        <button id="avail-prev-week" type="button">◀</button>
+        <div id="avail-week-label"></div>
+        <button id="avail-next-week" type="button">▶</button>
+      </div>
+
+      <div id="availability-container">
+        Lade Verfügbarkeiten...
+      </div>
+
+      <div class="availability-actions">
+        <button id="save-availability-btn">
+          Verfügbarkeiten dieser Woche speichern
+        </button>
+        <p id="availability-message" class="availability-message" style="display:none;"></p>
+      </div>
+    </section>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

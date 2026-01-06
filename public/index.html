@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale= 1.0">
+  <title>Friseur Terminbuchung</title>
+  <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+  <div class="app">
+    <script>
+      if (sessionStorage.getItem("accessGranted") !== "true") {
+        window.location.href = "login.html";
+      }
+    </script>
+    
+    
+  <h1>Book with me 💈</h1>
+
+  <a 
+  href="portfolio.html"
+  style="
+    display:inline-block;
+    margin:8px 0 14px 0;
+    padding:10px 14px;
+    border-radius:12px;
+    background:#02710b;
+    color:#f3f4f6;
+    font-weight:600;
+    text-decoration:none;
+    border:1px solid #121314;
+  "
+>
+  📸 Portfolio & About Me
+</a>
+
+
+
+  <!-- Basis-Service -->
+  <label for="service">Service:</label>
+  <select id="service">
+    <option value="">-- Bitte wählen --</option>
+    <!-- Optionen werden später dynamisch aus services.json geladen -->
+  </select>
+
+  <br>
+  <br>
+  <!-- Extras -->
+  <label for="extras">Extras:</label>
+  <div id="extras-container" class="dropdown">
+    <!-- Optionen werden hier dynamisch eingefügt -->
+  </div>
+
+  <!-- Gesamtzeit -->
+  <p>Gesamtzeit: <span id="total-duration">0</span> Minuten</p>
+
+
+  <h2>Termin wählen</h2>
+
+  <p id="service-hint" class="hint">
+    Bitte Service wählen um Verfügbarkeit zu sehen
+  </p>
+  
+
+<div class="week-nav">
+  <button id="prev-week">◀</button>
+
+  <div id="week-days"></div>
+
+  <button id="next-week">▶</button>
+</div>
+
+  <!-- Verstecktes Feld für gewählte Startzeit -->
+<input type="hidden" id="selected-time">
+
+
+<!-- Hier werden die Slots angezeigt -->
+<div id="slots-container"></div>
+
+<label for="customer-name">Name *</label>
+<input
+  type="text"
+  id="customer-name"
+  placeholder="Vor- und Nachname"
+  required
+>
+
+<label for="customer-phone">Telefonnummer *</label>
+<input
+  type="tel"
+  id="customer-phone"
+  placeholder="z. B. 0176 12345678"
+  required
+>
+
+  <!-- Notizfeld -->
+  <label for="note">Notiz:</label>
+  <textarea id="note"></textarea>
+
+  <!-- Absenden -->
+  <button id="book-btn">Termin buchen</button>
+
+  <button id="logout-btn" >Logout</button>
+</div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Zugangscode</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <h1>💈 Zugang</h1>
+    <p>Bitte 4-stelligen Code eingeben</p>
+
+    <input
+      type="password"
+      id="code-input"
+      maxlength="4"
+      placeholder="••••"
+    >
+
+    <button id="login-btn">Weiter</button>
+
+    <p id="error" style="color:#b00020; display:none; margin-top:10px;">
+      Falscher Code
+    </p>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>
