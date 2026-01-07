@@ -14,14 +14,14 @@ body {
 }
 
 .app {
-  max-width: 480px;
-  width: 100%;
+  max-width: 560px;      
   margin: 20px auto;
   padding: 16px 18px;
   box-sizing: border-box;
   background: #ffffff;
   border-radius: 12px;
 }
+
 
 /* =========================
    Login-Seite größer & zentriert
@@ -123,43 +123,33 @@ h2 {
     padding: 4px 8px;
   }
   
+  /* Wochentage immer in einer Zeile */
   #week-days {
     display: flex;
-    flex-direction: row;
-    gap: 8px;
-    overflow-x: auto;      /* horizontal scrollen statt rauslaufen */
-    padding: 4px 0;
-    scrollbar-width: thin; /* Firefox */
+    flex: 1;
+    justify-content: space-between;  /* verteilt die Kreise über die Breite */
+    align-items: center;
+    gap: 6px;
   }
   
-  /* für Webkit (Chrome, Safari), optional: */
-  #week-days::-webkit-scrollbar {
-    height: 6px;
-  }
-  #week-days::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 999px;
-  }
-  
-  
-  /* Die einzelnen Kreise / Kacheln */
+  /* Die einzelnen Tages-Kacheln */
   .day-circle {
     flex: 0 0 auto;
-    width: 72px;
+    width: 52px;               /* klein genug, damit 7 Stück reinpassen */
     padding: 6px 4px;
     border-radius: 10px;
     border: 1px solid #e0e0e0;
     text-align: center;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.3;
     box-sizing: border-box;
   }
   
-  /* optional: kleinere Schrift für Datum */
   .day-circle strong {
     display: block;
     margin-bottom: 2px;
   }
+  
     
   .day-circle span {
     font-size: 10px;
