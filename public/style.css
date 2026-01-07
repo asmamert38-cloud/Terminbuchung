@@ -114,7 +114,7 @@ h2 {
   
   .week-nav {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
     margin: 12px 0;
   }
@@ -123,17 +123,28 @@ h2 {
     padding: 4px 8px;
   }
   
-  /* Container für die Tageskreise */
   #week-days {
     display: flex;
-    flex-wrap: wrap;       /* bricht um, statt rauszulaufen */
+    flex-direction: row;
     gap: 8px;
-    justify-content: center;
-    flex: 1;
+    overflow-x: auto;      /* horizontal scrollen statt rauslaufen */
+    padding: 4px 0;
+    scrollbar-width: thin; /* Firefox */
   }
+  
+  /* für Webkit (Chrome, Safari), optional: */
+  #week-days::-webkit-scrollbar {
+    height: 6px;
+  }
+  #week-days::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 999px;
+  }
+  
   
   /* Die einzelnen Kreise / Kacheln */
   .day-circle {
+    flex: 0 0 auto;
     width: 72px;
     padding: 6px 4px;
     border-radius: 10px;
