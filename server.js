@@ -10,7 +10,8 @@ console.log("MAIL_PASS gesetzt?", !!process.env.MAIL_PASS);
 
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
 
 let transporter = nodemailer.createTransport({
   service: "gmail",
