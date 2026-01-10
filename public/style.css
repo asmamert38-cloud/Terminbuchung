@@ -19,13 +19,15 @@ body {
 }
 
 .app {
-  max-width: 560px;      
+  max-width: 560px;
+  width: 100%;
   margin: 20px auto;
   padding: 16px 18px;
   box-sizing: border-box;
   background: #ffffff;
   border-radius: 12px;
 }
+
 
 
 /* =========================
@@ -417,5 +419,21 @@ h2 {
 
   .day-circle strong {
     margin-bottom: 1px;
+  }
+}
+
+/* Verhindert overflow durch lange Wörter/Links */
+.app, .app * {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .app {
+    max-width: none;          /* keine Begrenzung auf Mobile */
+    width: calc(100% - 24px); /* links/rechts je 12px Abstand */
+    margin: 12px auto;        /* weniger „weit weg“ */
+    padding: 14px 14px;       /* etwas kompakter */
+    border-radius: 12px;
   }
 }
