@@ -437,3 +437,13 @@ h2 {
     border-radius: 12px;
   }
 }
+
+@media (max-width: 600px) {
+  body.admin-page .app {
+    max-width: none;
+    width: calc(100% - 24px);
+    margin: 12px auto;
+    padding: 14px 14px;
+    border-radius: 12px;
+  }
+}
