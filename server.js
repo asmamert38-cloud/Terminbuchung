@@ -14,10 +14,12 @@ const PORT = process.env.PORT || 3000;
 
 
 let transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: false,
   auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   }
 });
 
@@ -110,8 +112,8 @@ async function sendBookingNotification(booking) {
       .join(", ") || "Keine";
 
     let mailOptions = {
-      from: process.env.MAIL_USER,
-      to: "asmamert38@gmail.com",  
+      from: process.env.MAIL_FROM,
+      to: process.env.MAIL_TO,  
       subject: `💈 Neue Buchung am ${date} um ${time}`,
       text: `
 Neue Terminbuchung:
