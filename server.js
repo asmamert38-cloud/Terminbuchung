@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const nodemailer = require("nodemailer");
+
 
 console.log("MAIL_USER gesetzt?", !!process.env.MAIL_USER);
 console.log("MAIL_PASS gesetzt?", !!process.env.MAIL_PASS);
@@ -12,16 +12,6 @@ console.log("MAIL_PASS gesetzt?", !!process.env.MAIL_PASS);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
-let transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
 
 
 console.log("Starte server.js...");
@@ -111,11 +101,7 @@ async function sendBookingNotification(booking) {
       })
       .join(", ") || "Keine";
 
-    let mailOptions = {
-      from: process.env.MAIL_FROM,
-      to: process.env.MAIL_TO,  
-      subject: `💈 Neue Buchung am ${date} um ${time}`,
-      text: `
+    const text = `
 Neue Terminbuchung:
 
 Datum: ${date}
@@ -126,18 +112,39 @@ Telefon: ${customer.phone}
 
 Service: ${serviceName}
 Extras: ${extrasNames}
+
 Notiz: ${note || "Keine"}
-      `.trim()
+    `.trim();
+
+    const payload = {
+      sender: { email: process.env.MAIL_FROM },
+      to: [{ email: process.env.MAIL_TO }],
+      subject: `💈 Neue Buchung am ${date} um ${time}`,
+      textContent: text
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log("Benachrichtigungs-Mail gesendet");
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "api-key": process.env.BREVO_API_KEY
+      },
+      body: JSON.stringify(payload)
+    });
 
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("Brevo API Fehler:", res.status, body);
+      return;
+    }
+
+    console.log("Benachrichtigungs-Mail gesendet (Brevo API)");
   } catch (err) {
-    console.error("Fehler beim Senden der Mail:", err);
-    // GANZ WICHTIG: NICHT throwen!
+    console.error("Fehler beim Senden der Mail (Brevo API):", err);
   }
 }
+
 
 
 
