@@ -177,8 +177,10 @@ function getTimeRangesForDate(dateObj) {
   const override = dateAvailability.find(e => e.date === iso);
   if (override) {
     if (!override.active) {
-      // Tag explizit deaktiviert
+     // Nur deaktivieren, wenn Override explizit gesetzt wurde
+     if (Array.isArray(override.ranges) && override.ranges.length) {
       return [];
+    }
     }
     if (!Array.isArray(override.ranges) || !override.ranges.length) {
     // ranges: [{from, to}, ...] → in Minuten
@@ -312,6 +314,7 @@ function generateSlots() {
   // - Zusätzliche Anker = Endzeiten von Buchungen in dieser Range.
   // - Bei der Slot-Erzeugung gilt: immer der letzte Anker <= Slot-Zeit,
   //   damit alle Folge-Slots im 15-Min-Takt ab der letzten Buchung laufen.
+  
  const anchors = []; // { t: number, rs: number, re: number, bookingEnds: number[] }
   for (const [rs, re] of ranges) {
     const bookingEnds = bookedRanges
