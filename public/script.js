@@ -308,64 +308,54 @@ function generateSlots() {
   const fitsInAnyRange = (t) =>
     ranges.some(([rs, re]) => t >= rs && t + total <= re);
 
-  // Runde auf nächste 5 bzw. 15
+  // Runde auf 15-Min-Takt ab Range-Start (nur wenn keine Buchungen)
   const ceilTo = (x, step) => Math.ceil(x / step) * step;
 
-  // ------------------------------
-  // 1) Basis-Anker pro Range: ganz normaler 15-Min-Takt ab Range-Start
-  // ------------------------------
-  const anchors = []; // { t: number, rangeStart: number, rangeEnd: number }
+  // 1) Anker-Logik:
+  // - Basisanker = Range-Start (auf 15 gerundet).
+  // - Zusätzliche Anker = Endzeiten von Buchungen in dieser Range.
+  // - Bei der Slot-Erzeugung gilt: immer der letzte Anker <= Slot-Zeit,
+  //   damit alle Folge-Slots im 15-Min-Takt ab der letzten Buchung laufen.
+ const anchors = []; // { t: number, rs: number, re: number, bookingEnds: number[] }
   for (const [rs, re] of ranges) {
-    anchors.push({ t: ceilTo(rs, 15), rs, re });
-  }
+    const bookingEnds = bookedRanges
+      .filter(([_, be]) => be >= rs && be <= re)
+      .map(([_, be]) => be)
+      .sort((a, b) => a - b);
 
-  // ------------------------------
-  // 2) Tight-Anker aus Buchungs-Ende erzeugen (optimiert)
-  // Idee:
-  // - wir nehmen bookingEnd auf 5-Min gerundet (end oder end+5)
-  // - ABER nur, wenn dadurch wirklich eine neue "Schicht" entsteht
-  //   und nicht eh schon ein normaler Viertelstunden-Slot direkt passt.
-  // ------------------------------
-  for (const [rs, re] of ranges) {
-    for (const [bs, be] of bookedRanges) {
-      // nur wenn bookingEnd in dieser Range liegt
-      if (be < rs || be > re) continue;
-
-      const end5 = ceilTo(be, 5); // z.B. 09:35 bleibt 09:35, 09:36 -> 09:40
-
-      // Falls end5 nicht mal reinpasst (zu spät), skip
-      if (end5 + total > re) continue;
-
-      // "Optimierung": nur dann Anker setzen, wenn end5 NICHT sowieso
-      // ein Viertelstunden-Slot ist, der ohnehin in der Basis-Sequenz auftaucht.
-      // (Wenn end5 % 15 == 0, bringt es meistens nichts als extra "Schicht".)
-      if (end5 % 15 === 0) continue;
-
-      // Zusätzlich: Wenn der nächste Basis-Slot nach bookingEnd weniger als 5 Minuten weg ist,
-      // lohnt sich kein Tight-Anker.
-      const nextBase = ceilTo(be, 15);
-      if (nextBase - be < 5) continue;
-
-      // Anker hinzufügen: ab end5 läuft dann 15-Min-Takt (end5, end5+15, ...)
-      anchors.push({ t: end5, rs, re });
+    const base = ceilTo(rs, 15);
+    if (base + total <= re) {
+      anchors.push({ t: base, rs, re, bookingEnds });
     }
   }
+  bookingEnds.forEach(be => {
+    anchors.push({ t: be, rs, re, bookingEnds });
+  });
+
 
   // Dedupe Anker (gleicher Start in gleicher Range)
   const anchorKey = (a) => `${a.rs}-${a.re}-${a.t}`;
-  const uniqueAnchors = Array.from(
-    new Map(anchors.map(a => [anchorKey(a), a])).values()
-  );
+  const uniqueAnchors = Array.from(new Map(anchors.map(a => [anchorKey(a), a])).values());
 
   // ------------------------------
   // 3) Aus allen Ankern Sequenzen generieren (15-Min-Schritte ab Anker)
   // ------------------------------
   const candidates = new Set();
 
+  const latestAnchorForTime = (bookingEnds, base, t) => {
+    const ends = bookingEnds.filter(be => be <= t);
+    if (!ends.length) return base;
+    return ends[ends.length - 1];
+  };
+
   for (const a of uniqueAnchors) {
     for (let t = a.t; t + total <= a.re; t += 15) {
       // Nur Zeiten, die wirklich in einer Range liegen
       if (!fitsInAnyRange(t)) continue;
+      
+      const base = ceilTo(a.rs, 15);
+      const expectedAnchor = latestAnchorForTime(a.bookingEnds, base, t);
+      if (expectedAnchor !== a.t) continue;
 
       // Keine Überschneidungen anbieten
       if (overlapsAny(t)) continue;
