@@ -73,7 +73,7 @@ const phoneInput         = document.getElementById("customer-phone");
 const noteInput          = document.getElementById("note");
 const bookBtn            = document.getElementById("book-btn");
 const selectedTimeInput  = document.getElementById("selected-time");
-const logoutBtn = document.getElementById("logout-btn");
+const logoutBtn          = document.getElementById("logout-btn");
 
 /************************************
  * HILFSFUNKTIONEN
@@ -570,7 +570,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+if (logoutBtn){
 logoutBtn.addEventListener("click", () => {
   sessionStorage.removeItem("access");
   window.location.href = "login.html";
 });
+}

@@ -146,39 +146,13 @@ fetch("/api/bookings")
   <div style="display:flex; gap:8px; margin-top:10px;">
     <button class="btn-move">Verschieben</button>
     <button class="btn-delete" style="background:#b00020; color:#fff;">Löschen</button>
+</div>
        <div class="admin-actions">
-       ${status === "pending" ? `
-      <button class="btn-confirm">Bestätigen</button>
-      <button class="btn-reject">Ablehnen</button>
-    ` : ""}
     <button class="btn-move">Verschieben</button>
     <button class="btn-delete">Löschen</button>
   </div>
     `;
     
-    const confirmBtn = card.querySelector(".btn-confirm");
-if (confirmBtn) {
-  confirmBtn.addEventListener("click", async () => {
-    await fetch(`/api/bookings/${b.id}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "confirmed" })
-    });
-    location.reload();
-  });
-}
-
-const rejectBtn = card.querySelector(".btn-reject");
-if (rejectBtn) {
-  rejectBtn.addEventListener("click", async () => {
-    await fetch(`/api/bookings/${b.id}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "rejected" })
-    });
-    location.reload();
-  });
-}
 
 card.querySelector(".btn-delete").addEventListener("click", async () => {
   if (!confirm("Termin wirklich löschen?")) return;
