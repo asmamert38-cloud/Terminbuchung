@@ -64,7 +64,7 @@ const services = [
     });
 
     logoutBtn.addEventListener("click", () => {
-      sessionStorage.removeItem("access");
+      sessionStorage.removeItem("accessGranted");
       window.location.href = "login.html";
     });
     
