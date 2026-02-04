@@ -219,7 +219,7 @@ h2 {
     cursor: not-allowed;
   }
   
-  slot.booked {
+  .slot.booked {
     background: #b91111;
     color: #f9f7f7;
     cursor: not-allowed;
