@@ -133,16 +133,83 @@ fetch("/api/bookings")
 
       const serviceName = getServiceName(b.serviceId);
       const extrasNames = getExtrasNames(b.extras);
+      const status = b.status; 
 
-      card.innerHTML = `
-      <p><strong>${b.startTime}–${b.endTime} Uhr</strong></p>
-      <p><strong>Name:</strong> ${b.customer?.name || "-"}</p>
-      <p><strong>Telefon:</strong> ${b.customer?.phone || "-"}</p>
-      <p><strong>Service:</strong> ${serviceName}</p>
-      <p><strong>Extras:</strong> ${extrasNames}</p>
-      <p><strong>Notiz:</strong> ${b.note || "Keine"}</p>
+   card.innerHTML = `
+  <p><strong>${b.startTime}–${b.endTime} Uhr</strong></p>
+  <p><strong>Name:</strong> ${b.customer?.name || "-"}</p>
+  <p><strong>Telefon:</strong> ${b.customer?.phone || "-"}</p>
+  <p><strong>Service:</strong> ${b.serviceName || b.serviceId}</p>
+  <p><strong>Extras:</strong> ${b.extrasNames || extrasNames || "Keine"}</p>
+  <p><strong>Notiz:</strong> ${b.note || "Keine"}</p>
+
+  <div style="display:flex; gap:8px; margin-top:10px;">
+    <button class="btn-move">Verschieben</button>
+    <button class="btn-delete" style="background:#b00020; color:#fff;">Löschen</button>
+       <div class="admin-actions">
+       ${status === "pending" ? `
+      <button class="btn-confirm">Bestätigen</button>
+      <button class="btn-reject">Ablehnen</button>
+    ` : ""}
+    <button class="btn-move">Verschieben</button>
+    <button class="btn-delete">Löschen</button>
+  </div>
     `;
     
+    const confirmBtn = card.querySelector(".btn-confirm");
+if (confirmBtn) {
+  confirmBtn.addEventListener("click", async () => {
+    await fetch(`/api/bookings/${b.id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "confirmed" })
+    });
+    location.reload();
+  });
+}
+
+const rejectBtn = card.querySelector(".btn-reject");
+if (rejectBtn) {
+  rejectBtn.addEventListener("click", async () => {
+    await fetch(`/api/bookings/${b.id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "rejected" })
+    });
+    location.reload();
+  });
+}
+
+card.querySelector(".btn-delete").addEventListener("click", async () => {
+  if (!confirm("Termin wirklich löschen?")) return;
+
+  const res = await fetch(`/api/bookings/${b.id}`, { method: "DELETE" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return alert(data.error || "Fehler beim Löschen");
+
+  location.reload();
+});
+
+card.querySelector(".btn-move").addEventListener("click", async () => {
+  const newDate = prompt("Neues Datum (YYYY-MM-DD):", b.date);
+  if (!newDate) return;
+
+  const newTime = prompt("Neue Startzeit (HH:MM):", b.startTime || b.time);
+  if (!newTime) return;
+
+  const res = await fetch(`/api/bookings/${b.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date: newDate, time: newTime })
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return alert(data.error || "Fehler beim Verschieben");
+
+  location.reload();
+});
+
+
       list.appendChild(card);
     });
 

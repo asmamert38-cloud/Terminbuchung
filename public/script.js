@@ -284,43 +284,109 @@ function generateSlots() {
   slotsContainer.innerHTML = "";
   if (!selectedDate || !serviceSelect.value) return;
 
-  const total   = calculateTotalDuration();
+  const total = calculateTotalDuration();
   const dateObj = parseISODate(selectedDate);
 
-  const ranges = getTimeRangesForDate(dateObj); // ⬅️ NEU
+  const ranges = getTimeRangesForDate(dateObj);
   if (!ranges.length) return;
 
   const dayBookings = bookings.filter(b => b.date === selectedDate);
-  const bookedRanges = dayBookings.map(b => [
-    timeToMinutes(b.startTime),
-    timeToMinutes(b.endTime)
-  ]);
 
-  // Über alle Zeitfenster iterieren
-  for (const [start, end] of ranges) {
-    for (let t = start; t + total <= end; t += 15) {
-      const overlaps = bookedRanges.some(([s, e]) => t < e && t + total > s);
+  // Buchungen als Minutenbereiche
+  const bookedRanges = dayBookings
+    .filter(b => b.startTime && b.endTime)
+    .map(b => [timeToMinutes(b.startTime), timeToMinutes(b.endTime)])
+    .sort((a, b) => a[0] - b[0]);
 
-      const btn = document.createElement("button");
-      btn.textContent = minutesToTime(t);
-      btn.classList.add("slot");
+  // Helper: overlap check
+  const overlapsAny = (t) => bookedRanges.some(([s, e]) => t < e && t + total > s);
 
-      if (overlaps) {
-        // belegter Slot → rot, nicht klickbar
-        btn.classList.add("unavailable");
-        btn.disabled = true;
-      } else {
-        // freier Slot → dunkelgrau, klickbar
-        btn.classList.add("available");
-        btn.addEventListener("click", () => {
-          selectedTimeInput.value = btn.textContent;
-          Array.from(slotsContainer.children).forEach(b => b.classList.remove("selected"));
-          btn.classList.add("selected");
-        });
-      }
+  // Helper: passt komplett in irgendeine Range?
+  const fitsInAnyRange = (t) =>
+    ranges.some(([rs, re]) => t >= rs && t + total <= re);
 
-      slotsContainer.appendChild(btn);
+  // Runde auf nächste 5 bzw. 15
+  const ceilTo = (x, step) => Math.ceil(x / step) * step;
+
+  // ------------------------------
+  // 1) Basis-Anker pro Range: ganz normaler 15-Min-Takt ab Range-Start
+  // ------------------------------
+  const anchors = []; // { t: number, rangeStart: number, rangeEnd: number }
+  for (const [rs, re] of ranges) {
+    anchors.push({ t: ceilTo(rs, 15), rs, re });
+  }
+
+  // ------------------------------
+  // 2) Tight-Anker aus Buchungs-Ende erzeugen (optimiert)
+  // Idee:
+  // - wir nehmen bookingEnd auf 5-Min gerundet (end oder end+5)
+  // - ABER nur, wenn dadurch wirklich eine neue "Schicht" entsteht
+  //   und nicht eh schon ein normaler Viertelstunden-Slot direkt passt.
+  // ------------------------------
+  for (const [rs, re] of ranges) {
+    for (const [bs, be] of bookedRanges) {
+      // nur wenn bookingEnd in dieser Range liegt
+      if (be < rs || be > re) continue;
+
+      const end5 = ceilTo(be, 5); // z.B. 09:35 bleibt 09:35, 09:36 -> 09:40
+
+      // Falls end5 nicht mal reinpasst (zu spät), skip
+      if (end5 + total > re) continue;
+
+      // "Optimierung": nur dann Anker setzen, wenn end5 NICHT sowieso
+      // ein Viertelstunden-Slot ist, der ohnehin in der Basis-Sequenz auftaucht.
+      // (Wenn end5 % 15 == 0, bringt es meistens nichts als extra "Schicht".)
+      if (end5 % 15 === 0) continue;
+
+      // Zusätzlich: Wenn der nächste Basis-Slot nach bookingEnd weniger als 5 Minuten weg ist,
+      // lohnt sich kein Tight-Anker.
+      const nextBase = ceilTo(be, 15);
+      if (nextBase - be < 5) continue;
+
+      // Anker hinzufügen: ab end5 läuft dann 15-Min-Takt (end5, end5+15, ...)
+      anchors.push({ t: end5, rs, re });
     }
+  }
+
+  // Dedupe Anker (gleicher Start in gleicher Range)
+  const anchorKey = (a) => `${a.rs}-${a.re}-${a.t}`;
+  const uniqueAnchors = Array.from(
+    new Map(anchors.map(a => [anchorKey(a), a])).values()
+  );
+
+  // ------------------------------
+  // 3) Aus allen Ankern Sequenzen generieren (15-Min-Schritte ab Anker)
+  // ------------------------------
+  const candidates = new Set();
+
+  for (const a of uniqueAnchors) {
+    for (let t = a.t; t + total <= a.re; t += 15) {
+      // Nur Zeiten, die wirklich in einer Range liegen
+      if (!fitsInAnyRange(t)) continue;
+
+      // Keine Überschneidungen anbieten
+      if (overlapsAny(t)) continue;
+
+      candidates.add(t);
+    }
+  }
+
+  // Sortieren
+  const times = Array.from(candidates).sort((x, y) => x - y);
+
+  // Render
+  for (const t of times) {
+    const btn = document.createElement("button");
+    btn.textContent = minutesToTime(t);
+    btn.classList.add("slot", "available");
+
+    btn.addEventListener("click", () => {
+      selectedTimeInput.value = btn.textContent;
+      Array.from(slotsContainer.children).forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+
+    slotsContainer.appendChild(btn);
   }
 }
 
@@ -420,6 +486,68 @@ bookBtn.addEventListener("click", () => {
       alert("Es gab ein technisches Problem. Bitte später erneut versuchen.");
     });
 });
+
+app.delete("/api/bookings/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const bookings = readBookings();
+
+  const filtered = bookings.filter(b => Number(b.id) !== id);
+  if (filtered.length === bookings.length) {
+    return res.status(404).json({ error: "Termin nicht gefunden" });
+  }
+
+  writeBookings(filtered);
+  res.json({ success: true });
+});
+
+app.put("/api/bookings/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const { date, time } = req.body;
+
+  if (!date || !time) {
+    return res.status(400).json({ error: "date/time fehlt" });
+  }
+
+  const bookings = readBookings();
+  const idx = bookings.findIndex(b => Number(b.id) === id);
+  if (idx === -1) return res.status(404).json({ error: "Termin nicht gefunden" });
+
+  const b = bookings[idx];
+
+  // Dauer behalten
+  const duration = Number(b.duration || 0);
+  if (!duration) return res.status(400).json({ error: "Termin hat keine Dauer" });
+
+  const startMinutes = timeToMinutes(time);
+  const endMinutes = startMinutes + duration;
+
+  // Konfliktprüfung gegen andere Termine am selben Tag
+  const conflict = bookings.some(x => {
+    if (Number(x.id) === id) return false;
+    if (x.date !== date) return false;
+
+    const st = x.startTime || x.time;
+    const en = x.endTime;
+    if (!st || !en) return false;
+
+    return startMinutes < timeToMinutes(en) && endMinutes > timeToMinutes(st);
+  });
+
+  if (conflict) {
+    return res.status(400).json({ error: "Überschneidung beim Verschieben" });
+  }
+
+  b.date = date;
+  b.time = time;
+  b.startTime = time;
+  b.endTime = minutesToTime(endMinutes);
+
+  bookings[idx] = b;
+  writeBookings(bookings);
+
+  res.json({ success: true, booking: b });
+});
+
 
 /************************************
  * INITIALISIERUNG

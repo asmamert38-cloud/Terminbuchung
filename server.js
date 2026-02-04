@@ -236,7 +236,8 @@ app.post("/api/bookings", (req, res) => {
       return {
         ...b,
         startTime: s,
-        endTime: e
+        endTime: e,
+        status: b.status
       };
     });
 
@@ -244,6 +245,8 @@ app.post("/api/bookings", (req, res) => {
     const conflict = normalized.some(b => {
       if (b.date !== booking.date) return false;
       if (!b.startTime || !b.endTime) return false;
+
+      if (b.status && !["pending", "confirmed"].includes(b.status)) return false;
 
       const existingStart = timeToMinutes(b.startTime);
       const existingEnd = timeToMinutes(b.endTime);
@@ -263,7 +266,9 @@ app.post("/api/bookings", (req, res) => {
       ...booking,
       startTime: booking.time,
       endTime: minutesToTime(endMinutes),
-      duration: totalDuration
+      duration: totalDuration,
+      status: "pending",          
+      createdAt: new Date().toISOString()
     };
 
     normalized.push(newBooking);
@@ -282,6 +287,83 @@ app.post("/api/bookings", (req, res) => {
     return res.status(500).json({ error: "Interner Serverfehler bei der Buchung." });
   }
 });
+
+app.put("/api/bookings/:id/status", (req, res) => {
+  const id = Number(req.params.id);
+  const { status } = req.body;
+
+  const allowed = ["pending", "confirmed", "rejected", "canceled"];
+  if (!allowed.includes(status)) {
+    return res.status(400).json({ error: "Ungültiger Status" });
+  }
+
+  const bookings = readBookings();
+  const idx = bookings.findIndex(b => Number(b.id) === id);
+  if (idx === -1) return res.status(404).json({ error: "Nicht gefunden" });
+
+  bookings[idx].status = status;
+  writeBookings(bookings);
+
+  res.json({ success: true, booking: bookings[idx] });
+});
+
+app.delete("/api/bookings/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const bookings = readBookings();
+  const filtered = bookings.filter(b => Number(b.id) !== id);
+
+  if (filtered.length === bookings.length) {
+    return res.status(404).json({ error: "Nicht gefunden" });
+  }
+
+  writeBookings(filtered);
+  res.json({ success: true });
+});
+
+app.put("/api/bookings/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const { date, time } = req.body;
+
+  if (!date || !time) return res.status(400).json({ error: "date/time fehlt" });
+
+  const bookings = readBookings();
+  const idx = bookings.findIndex(b => Number(b.id) === id);
+  if (idx === -1) return res.status(404).json({ error: "Nicht gefunden" });
+
+  const b = bookings[idx];
+
+  // Dauer aus bestehendem Termin nehmen
+  const startMinutes = timeToMinutes(time);
+  const endMinutes = startMinutes + (b.duration || 0);
+
+  // Konflikt gegen andere blockierende Termine
+  const conflict = bookings.some(x => {
+    if (Number(x.id) === id) return false;
+    if (x.date !== date) return false;
+
+    const st = x.startTime || x.time;
+    const en = x.endTime;
+    if (!st || !en) return false;
+
+    const status = x.status || "confirmed";
+    if (!["pending", "confirmed"].includes(status)) return false;
+
+    return startMinutes < timeToMinutes(en) && endMinutes > timeToMinutes(st);
+  });
+
+  if (conflict) return res.status(400).json({ error: "Überschneidung beim Verschieben" });
+
+  b.date = date;
+  b.startTime = time;
+  b.time = time;
+  b.endTime = minutesToTime(endMinutes);
+
+  bookings[idx] = b;
+  writeBookings(bookings);
+
+  res.json({ success: true, booking: b });
+});
+
 
   
 // ===================================
