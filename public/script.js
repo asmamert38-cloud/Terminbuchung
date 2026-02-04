@@ -33,13 +33,13 @@ async function loadAvailability() {
 
     // Optionales Fallback (falls Server down o.ä.)
     availability = [
-      { day: 1, label: "Montag", from: "09:00", to: "18:00", active: false },
-      { day: 2, label: "Dienstag", from: "09:00", to: "18:00", active: false },
-      { day: 3, label: "Mittwoch", from: "09:00", to: "18:00", active: false },
-      { day: 4, label: "Donnerstag", from: "09:00", to: "18:00", active: false },
-      { day: 5, label: "Freitag", from: "09:00", to: "18:00", active: false },
-      { day: 6, label: "Samstag", from: "09:00", to: "18:00", active: false },
-      { day: 0, label: "Sonntag", from: "09:00", to: "18:00", active: false }
+      { day: 1, label: "Montag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
+      { day: 2, label: "Dienstag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
+      { day: 3, label: "Mittwoch", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
+      { day: 4, label: "Donnerstag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
+      { day: 5, label: "Freitag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
+      { day: 6, label: "Samstag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
+      { day: 0, label: "Sonntag", active: false, ranges: [{ from: "09:00", to: "18:00" }] }
     ];
   }
 }
@@ -192,13 +192,16 @@ function getTimeRangesForDate(dateObj) {
 
   // 2. Fallback: statischer Wochenplan (dein jetziges availability-Array)
   const weekday = dateObj.getDay();
-  const dayAvail = availability.find(a => a.weekday === weekday && a.active);
+  const dayAvail = availability.find(a => a.day === weekday && a.active);
   if (!dayAvail) return [];
 
-  return [[
-    timeToMinutes(dayAvail.from),
-    timeToMinutes(dayAvail.to)
-  ]];
+  if (!Array.isArray(dayAvail.ranges) || !dayAvail.ranges.length) {
+    return [];
+  }
+  return dayAvail.ranges.map(r => [
+    timeToMinutes(r.from),
+    timeToMinutes(r.to)
+  ]);
 }
 
 function isDayAvailable(dateObj) {
@@ -487,68 +490,6 @@ bookBtn.addEventListener("click", () => {
     });
 });
 
-app.delete("/api/bookings/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const bookings = readBookings();
-
-  const filtered = bookings.filter(b => Number(b.id) !== id);
-  if (filtered.length === bookings.length) {
-    return res.status(404).json({ error: "Termin nicht gefunden" });
-  }
-
-  writeBookings(filtered);
-  res.json({ success: true });
-});
-
-app.put("/api/bookings/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const { date, time } = req.body;
-
-  if (!date || !time) {
-    return res.status(400).json({ error: "date/time fehlt" });
-  }
-
-  const bookings = readBookings();
-  const idx = bookings.findIndex(b => Number(b.id) === id);
-  if (idx === -1) return res.status(404).json({ error: "Termin nicht gefunden" });
-
-  const b = bookings[idx];
-
-  // Dauer behalten
-  const duration = Number(b.duration || 0);
-  if (!duration) return res.status(400).json({ error: "Termin hat keine Dauer" });
-
-  const startMinutes = timeToMinutes(time);
-  const endMinutes = startMinutes + duration;
-
-  // Konfliktprüfung gegen andere Termine am selben Tag
-  const conflict = bookings.some(x => {
-    if (Number(x.id) === id) return false;
-    if (x.date !== date) return false;
-
-    const st = x.startTime || x.time;
-    const en = x.endTime;
-    if (!st || !en) return false;
-
-    return startMinutes < timeToMinutes(en) && endMinutes > timeToMinutes(st);
-  });
-
-  if (conflict) {
-    return res.status(400).json({ error: "Überschneidung beim Verschieben" });
-  }
-
-  b.date = date;
-  b.time = time;
-  b.startTime = time;
-  b.endTime = minutesToTime(endMinutes);
-
-  bookings[idx] = b;
-  writeBookings(bookings);
-
-  res.json({ success: true, booking: b });
-});
-
-
 /************************************
  * INITIALISIERUNG
  ************************************/
@@ -556,6 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (hint) hint.style.display = "block";
 
   Promise.all([
+    loadAvailability(), 
     loadDateAvailability(), // ⬅️ erst Admin-Verfügbarkeiten holen
     fetch("/api/bookings")
       .then(res => res.json())
@@ -563,7 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Fehler beim Laden der Buchungen:", err);
         return [];
       })
-  ]).then(([_, data]) => {
+   ]).then(([, , data]) => {
     bookings = data;
     renderWeek();
     generateSlots();
@@ -572,7 +514,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 if (logoutBtn){
 logoutBtn.addEventListener("click", () => {
-  sessionStorage.removeItem("access");
+  sessionStorage.removeItem("accessGranted");
   window.location.href = "login.html";
 });
 }

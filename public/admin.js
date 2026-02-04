@@ -22,7 +22,10 @@ function timeToMinutes(t) {
 }
 
 function toISODate(date) {
-  return date.toISOString().slice(0, 10); // YYYY-MM-DD
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`; // YYYY-MM-DD (lokal)
 }
 
 function addDays(date, days) {
@@ -135,22 +138,17 @@ fetch("/api/bookings")
       const extrasNames = getExtrasNames(b.extras);
       const status = b.status; 
 
-   card.innerHTML = `
-  <p><strong>${b.startTime}–${b.endTime} Uhr</strong></p>
-  <p><strong>Name:</strong> ${b.customer?.name || "-"}</p>
-  <p><strong>Telefon:</strong> ${b.customer?.phone || "-"}</p>
-  <p><strong>Service:</strong> ${b.serviceName || b.serviceId}</p>
-  <p><strong>Extras:</strong> ${b.extrasNames || extrasNames || "Keine"}</p>
-  <p><strong>Notiz:</strong> ${b.note || "Keine"}</p>
-
-  <div style="display:flex; gap:8px; margin-top:10px;">
-    <button class="btn-move">Verschieben</button>
-    <button class="btn-delete" style="background:#b00020; color:#fff;">Löschen</button>
-</div>
-       <div class="admin-actions">
-    <button class="btn-move">Verschieben</button>
-    <button class="btn-delete">Löschen</button>
-  </div>
+      card.innerHTML = `
+      <p><strong>${b.startTime}–${b.endTime} Uhr</strong></p>
+      <p><strong>Name:</strong> ${b.customer?.name || "-"}</p>
+      <p><strong>Telefon:</strong> ${b.customer?.phone || "-"}</p>
+      <p><strong>Service:</strong> ${serviceName || b.serviceId}</p>
+      <p><strong>Extras:</strong> ${extrasNames || "Keine"}</p>
+      <p><strong>Notiz:</strong> ${b.note || "Keine"}</p>
+      <div class="admin-actions">
+        <button class="btn-move">Verschieben</button>
+        <button class="btn-delete">Löschen</button>
+      </div>
     `;
     
 
