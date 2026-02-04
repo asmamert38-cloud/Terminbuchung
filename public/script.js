@@ -492,6 +492,13 @@ bookBtn.addEventListener("click", () => {
  ************************************/
 document.addEventListener("DOMContentLoaded", () => {
   if (hint) hint.style.display = "block";
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      sessionStorage.removeItem("accessGranted");
+      sessionStorage.removeItem("adminAccess");
+      window.location.href = "login.html";
+    });
+  }
 
   Promise.all([
     loadAvailability(), 
@@ -508,10 +515,3 @@ document.addEventListener("DOMContentLoaded", () => {
     generateSlots();
   });
 });
-
-if (logoutBtn){
-logoutBtn.addEventListener("click", () => {
-  sessionStorage.removeItem("accessGranted");
-  window.location.href = "login.html";
-});
-}
