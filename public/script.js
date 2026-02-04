@@ -181,14 +181,13 @@ function getTimeRangesForDate(dateObj) {
       return [];
     }
     if (!Array.isArray(override.ranges) || !override.ranges.length) {
-      return [];
-    }
     // ranges: [{from, to}, ...] → in Minuten
     return override.ranges.map(r => [
       timeToMinutes(r.from),
       timeToMinutes(r.to)
     ]);
   }
+}
 
   // 2. Fallback: statischer Wochenplan (dein jetziges availability-Array)
   const weekday = dateObj.getDay();
@@ -308,9 +307,6 @@ function generateSlots() {
   const fitsInAnyRange = (t) =>
     ranges.some(([rs, re]) => t >= rs && t + total <= re);
 
-  // Runde auf 15-Min-Takt ab Range-Start (nur wenn keine Buchungen)
-  const ceilTo = (x, step) => Math.ceil(x / step) * step;
-
   // 1) Anker-Logik:
   // - Basisanker = Range-Start (auf 15 gerundet).
   // - Zusätzliche Anker = Endzeiten von Buchungen in dieser Range.
@@ -352,7 +348,7 @@ function generateSlots() {
       // Nur Zeiten, die wirklich in einer Range liegen
       if (!fitsInAnyRange(t)) continue;
 
-      const base = ceilTo(a.rs);
+      const base = a.rs;
       const expectedAnchor = latestAnchorForTime(a.bookingEnds, base, t);
       if (expectedAnchor !== a.t) continue;
 
@@ -370,9 +366,14 @@ function generateSlots() {
   for (const t of times) {
     const btn = document.createElement("button");
     btn.textContent = minutesToTime(t);
-    btn.classList.add("slot", "available");
+    const isBooked = overlapsAny(t);
+    btn.classList.add("slot", isBooked ? "booked" : "available");
+    if (isBooked) {
+      btn.disabled = true;
+    }
 
     btn.addEventListener("click", () => {
+      if (btn.disabled) return;
       selectedTimeInput.value = btn.textContent;
       Array.from(slotsContainer.children).forEach(b => b.classList.remove("selected"));
       btn.classList.add("selected");

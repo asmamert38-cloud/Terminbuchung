@@ -219,6 +219,13 @@ h2 {
     cursor: not-allowed;
   }
   
+  slot.booked {
+    background: #b91111;
+    color: #f9f7f7;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
   .slot.selected {
     background: #1f6b3a;
     color: #fff;
