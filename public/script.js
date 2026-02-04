@@ -323,9 +323,8 @@ function generateSlots() {
       .map(([_, be]) => be)
       .sort((a, b) => a - b);
 
-    const base = ceilTo(rs, 15);
-    if (base + total <= re) {
-      anchors.push({ t: base, rs, re, bookingEnds });
+      const base = rs;
+      if (base + total <= re) anchors.push({ t: base, rs, re, bookingEnds });
     }
   }
   bookingEnds.forEach(be => {
@@ -352,8 +351,8 @@ function generateSlots() {
     for (let t = a.t; t + total <= a.re; t += 15) {
       // Nur Zeiten, die wirklich in einer Range liegen
       if (!fitsInAnyRange(t)) continue;
-      
-      const base = ceilTo(a.rs, 15);
+
+      const base = ceilTo(a.rs);
       const expectedAnchor = latestAnchorForTime(a.bookingEnds, base, t);
       if (expectedAnchor !== a.t) continue;
 
@@ -381,7 +380,7 @@ function generateSlots() {
 
     slotsContainer.appendChild(btn);
   }
-}
+
 
 
 /************************************
