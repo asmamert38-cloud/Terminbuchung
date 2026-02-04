@@ -177,19 +177,19 @@ function getTimeRangesForDate(dateObj) {
   const override = dateAvailability.find(e => e.date === iso);
   if (override) {
     if (!override.active) {
-     // Nur deaktivieren, wenn Override explizit gesetzt wurde
-     if (Array.isArray(override.ranges) && override.ranges.length) {
       return [];
     }
-    }
+
     if (!Array.isArray(override.ranges) || !override.ranges.length) {
+      return [];
+    }
     // ranges: [{from, to}, ...] → in Minuten
     return override.ranges.map(r => [
       timeToMinutes(r.from),
       timeToMinutes(r.to)
     ]);
   }
-}
+
 
   // 2. Fallback: statischer Wochenplan (dein jetziges availability-Array)
   const weekday = dateObj.getDay();
@@ -314,8 +314,8 @@ function generateSlots() {
   // - Zusätzliche Anker = Endzeiten von Buchungen in dieser Range.
   // - Bei der Slot-Erzeugung gilt: immer der letzte Anker <= Slot-Zeit,
   //   damit alle Folge-Slots im 15-Min-Takt ab der letzten Buchung laufen.
-  
- const anchors = []; // { t: number, rs: number, re: number, bookingEnds: number[] }
+
+  const anchors = []; // { t: number, rs: number, re: number, bookingEnds: number[] }
   for (const [rs, re] of ranges) {
     const bookingEnds = bookedRanges
       .filter(([_, be]) => be >= rs && be <= re)
@@ -323,14 +323,13 @@ function generateSlots() {
       .sort((a, b) => a - b);
 
       const base = rs;
-      if (base + total <= re) anchors.push({ t: base, rs, re, bookingEnds });
+    if (base + total <= re) anchors.push({ t: base, rs, re, bookingEnds });
+    bookingEnds.forEach(be => {
+      anchors.push({ t: be, rs, re, bookingEnds });
+    });
     }
   }
-  bookingEnds.forEach(be => {
-    anchors.push({ t: be, rs, re, bookingEnds });
-  });
-
-
+  
   // Dedupe Anker (gleicher Start in gleicher Range)
   const anchorKey = (a) => `${a.rs}-${a.re}-${a.t}`;
   const uniqueAnchors = Array.from(new Map(anchors.map(a => [anchorKey(a), a])).values());
@@ -339,6 +338,13 @@ function generateSlots() {
   // 3) Aus allen Ankern Sequenzen generieren (15-Min-Schritte ab Anker)
   // ------------------------------
   const candidates = new Set();
+  const bookedSlots = new Set();
+
+  for (const [start, end] of bookedRanges) {
+    for (let t = start; t < end; t += 15) {
+      bookedSlots.add(t);
+    }
+  }
 
   const latestAnchorForTime = (bookingEnds, base, t) => {
     const ends = bookingEnds.filter(be => be <= t);
@@ -356,20 +362,20 @@ function generateSlots() {
       if (expectedAnchor !== a.t) continue;
 
       // Keine Überschneidungen anbieten
-      if (overlapsAny(t)) continue;
-
-      candidates.add(t);
-    }
+      if (!overlapsAny(t)) {
+        candidates.add(t);
+      }
   }
+}
 
   // Sortieren
-  const times = Array.from(candidates).sort((x, y) => x - y);
+  const times = Array.from(new Set([...candidates, ...bookedSlots])).sort((x, y) => x - y);
 
   // Render
   for (const t of times) {
     const btn = document.createElement("button");
     btn.textContent = minutesToTime(t);
-    const isBooked = overlapsAny(t);
+    const isBooked = bookedSlots.has(t);
     btn.classList.add("slot", isBooked ? "booked" : "available");
     if (isBooked) {
       btn.disabled = true;
@@ -384,8 +390,6 @@ function generateSlots() {
 
     slotsContainer.appendChild(btn);
   }
-
-
 
 /************************************
  * NAVIGATION VOR/ZURÜCK
