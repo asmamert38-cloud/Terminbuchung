@@ -327,7 +327,7 @@ function generateSlots() {
     bookingEnds.forEach(be => {
       anchors.push({ t: be, rs, re, bookingEnds });
     });
-  }
+  
   }
   
   // Dedupe Anker (gleicher Start in gleicher Range)
@@ -390,7 +390,7 @@ function generateSlots() {
 
     slotsContainer.appendChild(btn);
   }
-
+}
 /************************************
  * NAVIGATION VOR/ZURÜCK
  ************************************/
