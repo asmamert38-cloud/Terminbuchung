@@ -322,12 +322,12 @@ function generateSlots() {
       .map(([_, be]) => be)
       .sort((a, b) => a - b);
 
-      const base = rs;
+    const base = rs;
     if (base + total <= re) anchors.push({ t: base, rs, re, bookingEnds });
     bookingEnds.forEach(be => {
       anchors.push({ t: be, rs, re, bookingEnds });
     });
-    }
+  }
   }
   
   // Dedupe Anker (gleicher Start in gleicher Range)
