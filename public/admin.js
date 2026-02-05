@@ -363,6 +363,10 @@ if (saveAvailabilityBtn) {
         ranges.push({ from, to });
       });
 
+      if (active && ranges.length === 0) {
+        ranges.push({ from: "09:00", to: "18:00" });
+      }
+
       payload.push({
         date: isoDate,
         active,

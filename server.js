@@ -419,15 +419,22 @@ app.post("/api/date-availability", (req, res) => {
     return res.status(400).json({ error: "Feld 'date' ist erforderlich." });
   }
 
+  let normalizedRanges = Array.isArray(ranges)
+  ? ranges.map(r => ({
+      from: String(r.from || "09:00"),
+      to: String(r.to || "18:00")
+    }))
+  : [];
+
+if (active && normalizedRanges.length === 0) {
+  normalizedRanges = [{ from: "09:00", to: "18:00" }];
+}
+
   const normalized = {
     date: String(date), // YYYY-MM-DD
     active: Boolean(active),
-    ranges: Array.isArray(ranges)
-      ? ranges.map(r => ({
-          from: String(r.from || "09:00"),
-          to: String(r.to || "18:00")
-        }))
-      : []
+    ranges: normalizedRanges
+
   };
 
   const all = readDateAvailability();
