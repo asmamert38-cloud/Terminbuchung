@@ -17,32 +17,6 @@ const extras = [
 /************************************
  * VERFÜGBARKEITEN (vom Server)
  ************************************/
-let availability = []; // wird beim Start per fetch() geladen
-
-
-async function loadAvailability() {
-  try {
-    const res = await fetch("/api/availability");
-    if (!res.ok) {
-      throw new Error("HTTP-Status " + res.status);
-    }
-    availability = await res.json();
-    console.log("Verfügbarkeiten geladen:", availability);
-  } catch (err) {
-    console.error("Fehler beim Laden der Verfügbarkeiten, nutze Fallback:", err);
-
-    // Optionales Fallback (falls Server down o.ä.)
-    availability = [
-      { day: 1, label: "Montag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
-      { day: 2, label: "Dienstag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
-      { day: 3, label: "Mittwoch", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
-      { day: 4, label: "Donnerstag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
-      { day: 5, label: "Freitag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
-      { day: 6, label: "Samstag", active: false, ranges: [{ from: "09:00", to: "18:00" }] },
-      { day: 0, label: "Sonntag", active: false, ranges: [{ from: "09:00", to: "18:00" }] }
-    ];
-  }
-}
 
 // Wird vom Server geladen
 let bookings = [];
@@ -173,33 +147,16 @@ extras.forEach(extra => {
 function getTimeRangesForDate(dateObj) {
   const iso = dateToISO(dateObj);
 
-  // 1. Override durch datumsspezifische Verfügbarkeit vom Admin
-  const override = dateAvailability.find(e => e.date === iso);
-  if (override) {
-    if (!override.active) {
-      return [];
-    }
-
-    if (!Array.isArray(override.ranges) || !override.ranges.length) {
-      return [];
-    }
-    // ranges: [{from, to}, ...] → in Minuten
-    return override.ranges.map(r => [
-      timeToMinutes(r.from),
-      timeToMinutes(r.to)
-    ]);
-  }
-
-
-  // 2. Fallback: statischer Wochenplan (dein jetziges availability-Array)
-  const weekday = dateObj.getDay();
-  const dayAvail = availability.find(a => a.day === weekday && a.active);
-  if (!dayAvail) return [];
-
-  if (!Array.isArray(dayAvail.ranges) || !dayAvail.ranges.length) {
+  const entry = dateAvailability.find(e => e.date === iso);
+  if (!entry || !entry.active) {
     return [];
   }
-  return dayAvail.ranges.map(r => [
+
+
+  if (!Array.isArray(entry.ranges) || !entry.ranges.length) {
+    return [];
+  }
+  return entry.ranges.map(r => [
     timeToMinutes(r.from),
     timeToMinutes(r.to)
   ]);
@@ -501,7 +458,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   Promise.all([
-    loadAvailability(), 
     loadDateAvailability(), // ⬅️ erst Admin-Verfügbarkeiten holen
     fetch("/api/bookings")
       .then(res => res.json())
@@ -509,7 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Fehler beim Laden der Buchungen:", err);
         return [];
       })
-   ]).then(([, , data]) => {
+    ]).then(([, data]) => {
     bookings = data;
     renderWeek();
     generateSlots();
